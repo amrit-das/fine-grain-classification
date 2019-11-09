@@ -12,7 +12,7 @@ import time
 import os
 import copy
 
-input_dim = 224 # The input dimension for ResNet is 224
+input_dim = 229 # The input dimension for ResNet is 224
 
 data_transforms = {
     'train': transforms.Compose([
