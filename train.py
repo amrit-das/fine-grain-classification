@@ -68,7 +68,7 @@ print (device)
 
 def save_models(epochs, model):
     print()
-    torch.save(model.state_dict(), "./models/trained.model")
+    torch.save(model.state_dict(), "./models/baseline.model")
     print("****----Checkpoint Saved----****")
     print()
 
@@ -124,7 +124,8 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
     model.load_state_dict(best_model_wts)
     return model
 
-model_ft = models.vgg16(pretrained=True)
+model_ft = models.inception_v3(pretrained=True)
+model_ft.aux_logits = False
 num_ftrs = model_ft.fc.in_features
 model_ft.fc = nn.Linear(num_ftrs, num_classes)
 
