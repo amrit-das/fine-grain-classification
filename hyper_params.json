@@ -1,0 +1,16 @@
+{
+    "Comments"          :   ["Except num classes do not modify only if you know what are you upto"],
+    "root_directory"    :   "dataset",
+    "num_classes"       :   62,
+    "num_epochs"        :   500,
+    "batch_size"        :   12,
+    "num_workers"       :   4,
+    "learning_rate"     :   0.001,
+    "optimizer"         :   "SGD",
+    "Available optim"   :   ["SGD" ],
+    "loss"              :   "Cross Entropy",
+    "Available Loss"    :   ["Cross Entropy"],
+    "momentum"          :   0.9,
+    "step_size"         :   7,
+    "gamma"             :   0.1
+}
