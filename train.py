@@ -11,8 +11,9 @@ from matplotlib import pyplot as plt
 import time
 import os
 import copy
+import torch.nn.functional as F 
 
-input_dim = 229 # The input dimension for ResNet is 224
+input_dim = 299 # The input dimension for ResNet is 224
 
 data_transforms = {
     'train': transforms.Compose([
@@ -124,18 +125,54 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
     model.load_state_dict(best_model_wts)
     return model
 
-model_ft = models.inception_v3(pretrained=True)
-model_ft.aux_logits = False
-num_ftrs = model_ft.fc.in_features
-model_ft.fc = nn.Linear(num_ftrs, num_classes)
+model_ft = models.vgg16(pretrained=True)
+#for param in model_ft.parameters():
+#   param.requires_grad = False
+#num_ftrs = model_ft.classifier[6].in_features
+#model_ft.classifier[6] = nn.Linear(num_ftrs,num_classes)
+
+#model_ft.aux_logits = False
+#num_ftrs = model_ft.fc.in_features
+
+class vgg16_see_smart(nn.Module):
+    def __init__(self, originalModel):
+        super(vgg16_see_smart, self).__init__()
+        self.features = torchvision.models.vgg16(pretrained=True).features
+        self.features = nn.Sequential(*list(self.features.children())[:-1])
+        #self.adaptive_pool = nn.AvgPool2d(2)
+        #self.conv1 = nn.Conv2d(1000, 2000, 3)
+        
+        self.fc = nn.Linear(512*512, num_classes)
+        
+        #self.dense1 = nn.Linear(512,512)
+        #self.dense2 = nn.Linear(512,62)
+
+        for param in self.features.parameters():
+            param.requires_grad = False
+
+        nn.init.kaiming_normal(self.fc.weight.data)
+        nn.init.constant(self.fc.bias.data, val=0)
+    
+    def forward(self, x):
+        N = x.size()[0]
+        x = self.features(x)
+        x = x.view(N, 512, 28*28)
+        x = torch.bmm(x, torch.transpose(x,1,2))/ (28**2) # Bilinear
+        x = x.view(N, 512**2)
+        x = torch.sqrt(x + 1e-5)
+        x = self.fc(x)
+        x = x.view()
+        return x
+
+model_ft = vgg16_see_smart(model_ft)
+
+print(model_ft)
 
 model_ft = model_ft.to(device)
 
 criterion = nn.CrossEntropyLoss()
-
-
 optimizer_ft = optim.SGD(model_ft.parameters(), lr=lr, momentum=momentum)
-
 exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=step_size, gamma=gamma)
 
 model_ft = train_model(model_ft, criterion, optimizer_ft, exp_lr_scheduler,num_epochs=num_epochs)
+
