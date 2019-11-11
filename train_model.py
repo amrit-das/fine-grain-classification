@@ -13,17 +13,18 @@ import os
 import copy
 import torch.nn.functional as F 
 
-input_dim = 112 # The input dimension for ResNet is 224
+input_dim = 112 
 
 data_transforms = {
     'train': transforms.Compose([
-        transforms.RandomResizedCrop(input_dim),
+        transforms.Resize(input_dim),
+        transforms.CenterCrop(input_dim),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ]),
     'val': transforms.Compose([
-        transforms.Resize(256),
+        transforms.Resize(input_dim),
         transforms.CenterCrop(input_dim),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
@@ -69,7 +70,7 @@ print (device)
 
 def save_models(epoc448hs, model):
     print()
-    torch.save(model.state_dict(), "./models/baseline.model")
+    torch.save(model.state_dict(), "./models/trained_fgc.model")
     print("****----Checkpoint Saved----****")
     print()
 
@@ -137,7 +138,7 @@ model_ft = models.vgg19(pretrained=True)
 class vgg19_see_smart(nn.Module):
     def __init__(self, originalModel):
         super(vgg19_see_smart, self).__init__()
-        self.features = torchvision.models.vgg16(pretrained=True).features
+        self.features = torchvision.models.vgg19(pretrained=True).features
         self.features = nn.Sequential(*list(self.features.children())[:-1])
         for param in self.features.parameters():
             param.requires_grad = False
@@ -151,8 +152,10 @@ class vgg19_see_smart(nn.Module):
         #self.dense2 = nn.Linear(512,62)
 
 
-        #nn.init.kaiming_normal_(self.fc.weight.data)
-        #nn.init.constant_(self.fc.bias.data, val=0)
+        nn.init.kaiming_normal_(self.fc.weight.data)
+        
+        if self.fc.bias is not None:
+            nn.init.constant_(self.fc.bias.data, val=0)
     
     def forward(self, x):
         N = x.size()[0]
@@ -161,7 +164,7 @@ class vgg19_see_smart(nn.Module):
         x = x.view(N, 512, 7*7)
         x = torch.bmm(x, torch.transpose(x,1,2))/ (7**2) # Bilinear
         x = x.view(N, 512**2)
-        x = torch.sqrt(x + 1e-5)
+        x = torch.sqrt(x + 1e-12)
         x = nn.functional.normalize(x)
         x = self.fc(x)
         #x = x.view()

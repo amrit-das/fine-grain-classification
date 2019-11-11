@@ -13,7 +13,7 @@ import os
 import copy
 import torch.nn.functional as F 
 
-input_dim = 112 # The input dimension for ResNet is 224
+input_dim = 112 
 
 data_transforms = {
     'train': transforms.Compose([
