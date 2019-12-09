@@ -7,7 +7,7 @@ from torch.optim import lr_scheduler
 import numpy as np
 import torchvision
 from torchvision import datasets, models, transforms
-from matplotlibi import pyplot as plt
+from matplotlib import pyplot as plt
 from center_loss import CenterLoss
 import time
 import os
@@ -152,8 +152,8 @@ class vgg19_see_smart(nn.Module):
         N = x.size()[0]
         #print(N)
         x = self.features(x)
-        x = x.view(N, 512, 7*7)
-        x = torch.bmm(x, torch.transpose(x,1,2))/ (7**2) # Bilinear
+        x = x.view(N, 512, 14*14)
+        x = torch.bmm(x, torch.transpose(x,1,2))/ (14**2) # Bilinear
         x = x.view(N, 512**2)
         x = torch.sqrt(x + 1e-12)
         x = nn.functional.normalize(x)
@@ -164,8 +164,8 @@ class vgg19_see_smart(nn.Module):
 model_ft = vgg19_see_smart(model_ft)
 model_ft = model_ft.to(device)
 
-celoss = nn.CrossEntropyLoss(smooth_eps=0.1).to(device)
-centerloss = CenterLoss(num_classes, 512).to(device)
+celoss = CrossEntropyLoss(smooth_eps=0.1).to(device)
+centerloss = CenterLoss(num_classes=num_classes,feat_dim=2,use_gpu=True ).to(device)
 
 criterion = [celoss,centerloss]
 
