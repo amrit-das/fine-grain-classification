@@ -11,6 +11,6 @@
     "loss"              :   "Cross Entropy",
     "Available Loss"    :   ["Cross Entropy"],
     "momentum"          :   0.9,
-    "step_size"         :   7,
+    "step_size"         :   10,
     "gamma"             :   0.1
 }

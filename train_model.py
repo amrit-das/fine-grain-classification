@@ -8,12 +8,13 @@ import numpy as np
 import torchvision
 from torchvision import datasets, models, transforms
 from matplotlib import pyplot as plt
+from center_loss import CenterLoss
 import time
 import os
 import copy
 import torch.nn.functional as F 
 
-input_dim = 112 
+input_dim = 224
 
 data_transforms = {
     'train': transforms.Compose([
@@ -96,18 +97,22 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
                 inputs = inputs.to(device)
                 labels = labels.to(device)
 
-                optimizer.zero_grad()
+                optimizer[0].zero_grad()
+                optimizer[1].zero_grad()
 
                 with torch.set_grad_enabled(phase == 'train'):
                     outputs = model(inputs)
                     _, preds = torch.max(outputs, 1)
-                    loss = criterion(outputs, labels)
+                    loss1 = criterion[0](outputs, labels)
+                    loss2 = criterion[1](outputs, labels)
+                    total_loss = loss1 + loss2
 
                     if phase == 'train':
-                        loss.backward()
-                        optimizer.step()
+                        total_loss.backward()
+                        optimizer[0].step()
+                        optimizer[1].step()
 
-                running_loss += loss.item() * inputs.size(0)
+                running_loss += total_loss.item() * inputs.size(0)
                 running_corrects += torch.sum(preds == labels.data)
 
             epoch_loss = running_loss / dataset_sizes[phase]
@@ -127,13 +132,6 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
     return model
 
 model_ft = models.vgg19(pretrained=True)
-#for param in model_ft.parameters():
-#   param.requires_grad = False
-#num_ftrs = model_ft.classifier[6].in_features
-#model_ft.classifier[6] = nn.Linear(num_ftrs,num_classes)
-
-#model_ft.aux_logits = False
-#num_ftrs = model_ft.fc.in_features
 
 class vgg19_see_smart(nn.Module):
     def __init__(self, originalModel):
@@ -143,15 +141,7 @@ class vgg19_see_smart(nn.Module):
         for param in self.features.parameters():
             param.requires_grad = False
         
-        #self.adaptive_pool = nn.AvgPool2d(2)
-        #self.conv1 = nn.Conv2d(1000, 2000, 3)
-        
         self.fc = nn.Linear(512*512, num_classes)
-        
-        #self.dense1 = nn.Linear(512,512)
-        #self.dense2 = nn.Linear(512,62)
-
-
         nn.init.kaiming_normal_(self.fc.weight.data)
         
         if self.fc.bias is not None:
@@ -171,13 +161,24 @@ class vgg19_see_smart(nn.Module):
         return x
 
 model_ft = vgg19_see_smart(model_ft)
-
-print(model_ft)
 model_ft = model_ft.to(device)
 
-criterion = nn.CrossEntropyLoss()
-optimizer_ft = optim.SGD(model_ft.parameters(), lr=lr, momentum=momentum)
-exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=step_size, gamma=gamma)
+celoss = nn.CrossEntropyLoss(smooth_eps=0.1).to(device)
+centerloss = CenterLoss(num_classes, 512).to(device)
 
-model_ft = train_model(model_ft, criterion, optimizer_ft, exp_lr_scheduler,num_epochs=num_epochs)
+criterion = [celoss,centerloss]
 
+max_lr = 0.001
+min_lr = 0.00001
+
+one_cycle = 20
+num_cycle = 3
+max_epochs = int(num_classes*one_cycle)
+
+net_optimizer = torch.optim.SGD(model_ft.parameters(), max_lr, momentum=0.9, weight_decay=1e-4)
+cl_optimimzer = torch.optim.SGD(centerloss.parameters(), max_lr, momentum=0.9, weight_decay=1e-4)
+
+optimizer = [net_optimizer, cl_optimimzer]
+lr_scheduler = lr_scheduler.StepLR(net_optimizer, step_size=step_size, gamma=gamma)
+
+model_ft = train_model(model_ft, criterion, optimizer, lr_scheduler,num_epochs=num_epochs)
