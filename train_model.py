@@ -165,7 +165,7 @@ model_ft = vgg19_see_smart(model_ft)
 model_ft = model_ft.to(device)
 
 celoss = CrossEntropyLoss(smooth_eps=0.1).to(device)
-centerloss = CenterLoss(num_classes=num_classes,feat_dim=2,use_gpu=True ).to(device)
+centerloss = CenterLoss(num_classes=num_classes,feat_dim=507,use_gpu=True ).to(device)
 
 criterion = [celoss,centerloss]
 
