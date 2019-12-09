@@ -86,7 +86,6 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
 
         for phase in ['train', 'val']:
             if phase == 'train':
-                scheduler.step()
                 model.train()
             else:
                 model.eval()
@@ -112,6 +111,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
                         total_loss.backward()
                         optimizer[0].step()
                         optimizer[1].step()
+                        scheduler.step()
 
                 running_loss += total_loss.item() * inputs.size(0)
                 running_corrects += torch.sum(preds == labels.data)
