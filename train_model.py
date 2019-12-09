@@ -7,11 +7,12 @@ from torch.optim import lr_scheduler
 import numpy as np
 import torchvision
 from torchvision import datasets, models, transforms
-from matplotlib import pyplot as plt
+from matplotlibi import pyplot as plt
 from center_loss import CenterLoss
 import time
 import os
 import copy
+from cross_entropy import CrossEntropyLoss
 import torch.nn.functional as F 
 
 input_dim = 224
